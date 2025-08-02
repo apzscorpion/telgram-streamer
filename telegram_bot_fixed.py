@@ -17,7 +17,7 @@ from telegram.constants import ParseMode
 from config import *
 
 # Cloudflare Worker URL (UPDATE THIS WITH YOUR ACTUAL URL)
-CLOUDFLARE_WORKER_URL = "https://telegram-file-proxy.your-subdomain.workers.dev"
+CLOUDFLARE_WORKER_URL = "https://telegram-file-proxy.mhstreamer.workers.dev"
 
 # Increased file size limit to 4GB
 MAX_FILE_SIZE = 4 * 1024 * 1024 * 1024  # 4GB

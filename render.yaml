@@ -1,0 +1,14 @@
+services:
+  - type: web
+    name: telegram-streamer-bot
+    env: python
+    buildCommand: pip install -r requirements.txt
+    startCommand: python telegram_bot_fixed.py
+    plan: free
+    envVars:
+      - key: BOT_TOKEN
+        value: 8445456449:AAGE0BaW2pSxJf7t4j5wb0Q09KRPItienPA
+      - key: BOT_USERNAME
+        value: MHStreamsBot
+      - key: CLOUDFLARE_WORKER_URL
+        value: https://telegram-file-proxy.mhstreamer.workers.dev

@@ -1,0 +1,30 @@
+app = "telegram-streamer-bot"
+primary_region = "iad"
+
+[build]
+
+[env]
+  BOT_TOKEN = "8445456449:AAGE0BaW2pSxJf7t4j5wb0Q09KRPItienPA"
+  BOT_USERNAME = "MHStreamsBot"
+  CLOUDFLARE_WORKER_URL = "https://telegram-file-proxy.mhstreamer.workers.dev"
+
+[processes]
+  app = "python telegram_bot_fixed.py"
+
+[[services]]
+  internal_port = 8080
+  processes = ["app"]
+  protocol = "tcp"
+  [services.concurrency]
+    hard_limit = 25
+    soft_limit = 20
+    type = "connections"
+
+  [[services.ports]]
+    force_https = true
+    handlers = ["http"]
+    port = 80
+
+  [[services.ports]]
+    handlers = ["tls", "http"]
+    port = 443 
