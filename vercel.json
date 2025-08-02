@@ -2,14 +2,30 @@
   "version": 2,
   "builds": [
     {
-      "src": "app_vercel_direct.py",
+      "src": "app_vercel.py",
       "use": "@vercel/python"
     }
   ],
   "routes": [
     {
+      "src": "/webhook",
+      "dest": "app_vercel.py"
+    },
+    {
+      "src": "/set-webhook",
+      "dest": "app_vercel.py"
+    },
+    {
+      "src": "/get-webhook-info",
+      "dest": "app_vercel.py"
+    },
+    {
+      "src": "/delete-webhook",
+      "dest": "app_vercel.py"
+    },
+    {
       "src": "/(.*)",
-      "dest": "app_vercel_direct.py"
+      "dest": "app_vercel.py"
     }
   ],
   "env": {

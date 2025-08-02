@@ -1,28 +1,35 @@
-# 🚀 Vercel Deployment Guide
+# Vercel Deployment Guide for Telegram Bot
 
-## Overview
-
-This guide will help you deploy your Telegram Video Streamer to Vercel. The Vercel version uses in-memory storage and proxies Telegram files directly.
+This guide will help you deploy your Telegram bot to Vercel so it runs automatically without needing to start it manually.
 
 ## Prerequisites
 
-1. **Vercel Account**: Sign up at [vercel.com](https://vercel.com)
-2. **GitHub Account**: For repository hosting
-3. **Valid Bot Token**: Get from @BotFather
+1. **Node.js and npm** installed on your system
+2. **Vercel CLI** (will be installed automatically)
+3. **GitHub account** (for Vercel integration)
 
-## Step 1: Fix Your Bot Token
+## Quick Deployment
 
-First, you need to get a valid bot token:
+### Option 1: Using the Deployment Script
 
-1. **Message @BotFather** on Telegram
-2. **Send `/newbot`** command
-3. **Choose a name** for your bot
-4. **Choose a username** (must end with 'bot')
-5. **Copy the token** (looks like: `123456789:ABCdefGHIjklMNOpqrSTUvwxYZ`)
+1. Make the script executable:
 
-## Step 2: Prepare for Deployment
+   ```bash
+   chmod +x deploy_vercel.sh
+   ```
 
-### Option A: Use Vercel CLI
+2. Run the deployment script:
+
+   ```bash
+   ./deploy_vercel.sh
+   ```
+
+3. Follow the prompts to:
+   - Login to Vercel (if not already logged in)
+   - Set up your project
+   - Configure environment variables
+
+### Option 2: Manual Deployment
 
 1. **Install Vercel CLI**:
 
@@ -36,247 +43,87 @@ First, you need to get a valid bot token:
    vercel login
    ```
 
-3. **Deploy**:
-   ```bash
-   vercel
-   ```
-
-### Option B: Deploy via GitHub
-
-1. **Push to GitHub**:
+3. **Deploy to Vercel**:
 
    ```bash
-   git init
-   git add .
-   git commit -m "Initial commit"
-   git remote add origin https://github.com/yourusername/telegram-streamer.git
-   git push -u origin main
+   vercel --prod
    ```
 
-2. **Connect to Vercel**:
-   - Go to [vercel.com](https://vercel.com)
-   - Click "New Project"
-   - Import your GitHub repository
-   - Configure environment variables
+4. **Set Environment Variables**:
 
-## Step 3: Environment Variables
-
-Set these environment variables in Vercel:
-
-### Required Variables
-
-1. **TELEGRAM_BOT_TOKEN**: Your bot token from @BotFather
-2. **SECRET_KEY**: A random secret key for Flask
-
-### How to Set Environment Variables
-
-1. **In Vercel Dashboard**:
-
-   - Go to your project
-   - Click "Settings"
-   - Click "Environment Variables"
-   - Add each variable
-
-2. **Via Vercel CLI**:
    ```bash
-   vercel env add TELEGRAM_BOT_TOKEN
-   vercel env add SECRET_KEY
+   vercel env add BOT_TOKEN
+   vercel env add CLOUDFLARE_WORKER_URL
    ```
 
-## Step 4: Deploy
-
-### Using Vercel CLI
-
-```bash
-# Deploy to production
-vercel --prod
-
-# Or deploy to preview
-vercel
-```
-
-### Using GitHub Integration
-
-1. **Push changes** to GitHub
-2. **Vercel will auto-deploy**
-3. **Check deployment status** in Vercel dashboard
-
-## Step 5: Update Bot Configuration
-
-After deployment, update your bot configuration:
-
-1. **Get your Vercel URL** (e.g., `https://your-app.vercel.app`)
-2. **Update `config.py`**:
-
-   ```python
-   FLASK_BASE_URL = "https://your-app.vercel.app"
+5. **Set up Webhook** (after deployment):
+   ```bash
+   curl -X POST "https://your-app.vercel.app/set-webhook"
    ```
 
-3. **Update `telegram_bot.py`**:
-   ```python
-   FLASK_BASE_URL = "https://your-app.vercel.app"
-   ```
+## Environment Variables
 
-## Step 6: Test the Deployment
+Set these in your Vercel dashboard or via CLI:
 
-1. **Test the web interface**:
+- `BOT_TOKEN`: Your Telegram bot token
+- `CLOUDFLARE_WORKER_URL`: Your Cloudflare Worker URL for streaming
 
-   - Visit your Vercel URL
-   - Try uploading a file ID
+## How It Works
 
-2. **Test the bot**:
-   - Send a video to your bot
-   - Check if streaming URLs work
+1. **Webhook-based**: Instead of polling, the bot uses Telegram webhooks
+2. **Serverless**: Runs on Vercel's serverless functions
+3. **Auto-start**: No need to manually start the bot
+4. **Scalable**: Automatically scales with usage
 
-## Vercel-Specific Features
+## Bot Features
 
-### ✅ What Works on Vercel
+- ✅ Handles video files
+- ✅ Handles document files (videos)
+- ✅ Creates streaming URLs
+- ✅ Works with forwarded videos
+- ✅ Simple commands (/start, /help)
 
-- ✅ **Web interface** - Full functionality
-- ✅ **API endpoints** - All endpoints work
-- ✅ **Video streaming** - Proxies Telegram files
-- ✅ **VLC streaming** - Compatible with VLC
-- ✅ **File uploads** - Via web interface
-- ✅ **Stream management** - List and manage streams
+## Testing Your Bot
 
-### ⚠️ Limitations
+1. **Check if bot is running**:
+   Visit: `https://your-app.vercel.app/`
 
-- ⚠️ **No file storage** - Uses in-memory storage
-- ⚠️ **Streams reset** - On serverless function restart
-- ⚠️ **Timeout limits** - 30-second function timeout
-- ⚠️ **Memory limits** - 1024MB per function
+2. **Check webhook status**:
+   Visit: `https://your-app.vercel.app/get-webhook-info`
 
-### 🔧 Optimizations
-
-1. **Use `app_vercel.py`** instead of `app.py`
-2. **Set proper timeouts** in `vercel.json`
-3. **Use environment variables** for configuration
-4. **Enable caching** for better performance
-
-## Configuration Files
-
-### vercel.json
-
-```json
-{
-  "version": 2,
-  "builds": [
-    {
-      "src": "app_vercel.py",
-      "use": "@vercel/python"
-    }
-  ],
-  "routes": [
-    {
-      "src": "/(.*)",
-      "dest": "app_vercel.py"
-    }
-  ],
-  "env": {
-    "PYTHONPATH": "."
-  },
-  "functions": {
-    "app_vercel.py": {
-      "maxDuration": 30
-    }
-  }
-}
-```
-
-### requirements-vercel.txt
-
-```
-flask==2.3.3
-requests==2.31.0
-python-dotenv==1.0.0
-werkzeug==2.3.7
-```
+3. **Test with Telegram**:
+   Send `/start` to your bot
 
 ## Troubleshooting
 
-### Common Issues
+### Bot not responding?
 
-1. **"Function timeout"**:
+1. Check webhook status: `https://your-app.vercel.app/get-webhook-info`
+2. Re-set webhook: `https://your-app.vercel.app/set-webhook`
+3. Check Vercel logs in dashboard
 
-   - Reduce video file size
-   - Use smaller chunks
-   - Increase timeout in `vercel.json`
+### Deployment failed?
 
-2. **"Memory limit exceeded"**:
+1. Check if all environment variables are set
+2. Ensure `vercel.json` is in root directory
+3. Check `requirements-vercel.txt` has all dependencies
 
-   - Use smaller files
-   - Optimize streaming
-   - Use external storage
+### Webhook not working?
 
-3. **"Environment variable not found"**:
+1. Make sure your bot token is correct
+2. Check if the domain is accessible
+3. Try deleting and re-setting webhook
 
-   - Check Vercel dashboard
-   - Redeploy after adding variables
-   - Use `vercel env ls` to verify
+## Commands
 
-4. **"Bot not responding"**:
-   - Check bot token
-   - Verify webhook URL
-   - Test bot manually
-
-### Debug Mode
-
-Enable debug logging:
-
-```python
-# In app_vercel.py
-app.run(debug=True)
-```
-
-### Logs
-
-Check Vercel logs:
-
-```bash
-vercel logs
-```
-
-## Production Considerations
-
-### Security
-
-1. **Use HTTPS** (automatic on Vercel)
-2. **Set strong SECRET_KEY**
-3. **Validate file types**
-4. **Rate limiting**
-
-### Performance
-
-1. **Use CDN** for static files
-2. **Enable caching**
-3. **Optimize images**
-4. **Monitor usage**
-
-### Monitoring
-
-1. **Set up alerts**
-2. **Monitor errors**
-3. **Track usage**
-4. **Performance metrics**
-
-## Alternative Deployment
-
-If Vercel doesn't meet your needs, consider:
-
-1. **Railway** - Similar to Vercel
-2. **Render** - Good for Python apps
-3. **Heroku** - Traditional hosting
-4. **DigitalOcean** - VPS hosting
+- `/start` - Show welcome message
+- `/help` - Show help information
+- Send any video file - Get streaming URLs
 
 ## Support
 
-For deployment issues:
+If you encounter issues:
 
-1. **Check Vercel logs**
-2. **Verify environment variables**
-3. **Test locally first**
-4. **Check bot token validity**
-
----
-
-**🎉 Your Telegram Video Streamer is now deployed on Vercel!**
+1. Check Vercel function logs
+2. Verify environment variables
+3. Test webhook endpoints manually

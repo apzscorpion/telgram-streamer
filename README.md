@@ -1,207 +1,147 @@
-# Telegram Video Streamer
+# Telegram Video Streaming Bot
 
-A web application that converts Telegram video files to streaming URLs. Upload a Telegram file ID and get a direct streaming URL that can be played in any web browser.
+A simple Telegram bot that creates streaming URLs for video files. Users can send video files to the bot and receive streaming URLs that can be used in browsers or media players.
 
 ## Features
 
-- 🎥 Convert Telegram videos to streaming URLs
-- 🌐 Modern, responsive web interface
-- 📱 Mobile-friendly design
-- ⚡ Real-time video streaming
-- 🧹 Automatic cleanup of old streams
-- 📊 Stream statistics and management
+- ✅ **Video Streaming**: Creates streaming URLs for any video file
+- ✅ **Document Support**: Handles video files sent as documents
+- ✅ **Forwarded Videos**: Works with forwarded videos from other chats
+- ✅ **Multiple Formats**: Supports all video formats supported by Telegram
+- ✅ **Cloudflare Integration**: Uses Cloudflare Workers for streaming
+- ✅ **Auto-deployment**: Deploy to Vercel for automatic startup
 
-## Setup
+## Quick Start
 
-### Prerequisites
+### Option 1: Deploy to Vercel (Recommended)
 
-- Python 3.7 or higher
-- pip (Python package installer)
+1. **Setup Vercel**:
 
-### Installation
-
-1. Clone or download this repository
-2. Navigate to the project directory
-3. Install dependencies:
-
-```bash
-pip install -r requirements.txt
-```
-
-### Running the Application
-
-1. Start the Flask server:
-
-```bash
-python app.py
-```
-
-2. Open your web browser and go to:
-   ```
-   http://localhost:5000
+   ```bash
+   ./setup_vercel.sh
    ```
 
-The application will be available on `http://localhost:5000`
+2. **Deploy to Vercel**:
 
-## How to Use
+   ```bash
+   ./deploy_vercel.sh
+   ```
 
-### Getting a Telegram File ID
+3. **Set Environment Variables**:
+   - `BOT_TOKEN`: Your Telegram bot token
+   - `CLOUDFLARE_WORKER_URL`: Your Cloudflare Worker URL
 
-1. **Using Telegram Bot API:**
+### Option 2: Run Locally
 
-   - Send a video to your bot
-   - The bot will receive a message with a `file_id`
-   - Use this `file_id` in the web interface
+1. **Install dependencies**:
 
-2. **Using Telegram Web:**
-   - Open Telegram Web
-   - Send a video to yourself or a chat
-   - Use browser developer tools to find the file ID
+   ```bash
+   pip install -r requirements.txt
+   ```
 
-### Converting Videos
+2. **Set environment variables**:
 
-1. Open the web interface at `http://localhost:5000`
-2. Enter the Telegram file ID in the input field
-3. Click "Convert to Stream"
-4. The application will download the video and create a streaming URL
-5. Click the generated URL to play the video in your browser
+   ```bash
+   export BOT_TOKEN="your_bot_token"
+   export CLOUDFLARE_WORKER_URL="your_cloudflare_worker_url"
+   ```
 
-### Stream URLs
+3. **Run the bot**:
+   ```bash
+   python simple_bot.py
+   ```
 
-Generated stream URLs follow this format:
+## Bot Commands
 
-```
-http://localhost:5000/stream/stream_[timestamp]
-```
+- `/start` - Show welcome message and help
+- `/help` - Show detailed help information
+- Send any video file - Get streaming URLs
 
-These URLs can be:
+## How It Works
 
-- Opened directly in a web browser
-- Embedded in HTML video tags
-- Shared with others (if the server is accessible)
+1. **User sends video** to the bot
+2. **Bot extracts file ID** from the video
+3. **Creates streaming URLs** using Cloudflare Worker
+4. **Returns URLs** to user for streaming
 
-## API Endpoints
+## Streaming URLs
 
-### POST /upload
+The bot creates two types of URLs:
 
-Convert a Telegram file ID to a streaming URL.
+- **Stream URL**: For browser playback
+- **Download URL**: For VLC media player or direct download
 
-**Request:**
+## Deployment Options
 
-```json
-{
-  "file_id": "your_telegram_file_id"
-}
-```
+### Vercel (Recommended)
 
-**Response:**
+- ✅ Automatic startup
+- ✅ No manual commands needed
+- ✅ Scalable and reliable
+- ✅ Webhook-based (no polling)
 
-```json
-{
-  "success": true,
-  "stream_url": "/stream/stream_1234567890",
-  "filename": "video_1234567890.mp4"
-}
-```
+### Local Development
 
-### GET /stream/{stream_id}
+- ✅ Full control
+- ✅ Easy debugging
+- ✅ No deployment needed
+- ⚠️ Requires manual startup
 
-Stream a video file.
+### Other Platforms
 
-**Headers:**
+- Railway
+- Render
+- Heroku
+- DigitalOcean
 
-- `Accept-Ranges: bytes` (for range requests)
-- `Content-Type: video/mp4`
+## Environment Variables
 
-### GET /streams
+| Variable                | Description                        | Required |
+| ----------------------- | ---------------------------------- | -------- |
+| `BOT_TOKEN`             | Telegram bot token from @BotFather | Yes      |
+| `CLOUDFLARE_WORKER_URL` | Your Cloudflare Worker URL         | Yes      |
 
-List all active streams.
-
-**Response:**
-
-```json
-[
-  {
-    "id": "stream_1234567890",
-    "filename": "video_1234567890.mp4",
-    "created_at": "2024-01-01T12:00:00",
-    "access_count": 5,
-    "stream_url": "/stream/stream_1234567890"
-  }
-]
-```
-
-## Configuration
-
-### Environment Variables
-
-You can set these environment variables:
-
-- `TELEGRAM_BOT_TOKEN`: Your Telegram bot token (default: provided in code)
-- `FLASK_SECRET_KEY`: Flask secret key for sessions
-- `MAX_FILE_SIZE`: Maximum file size in bytes (default: 100MB)
-
-### File Limits
-
-- Maximum file size: 100MB
-- Stream retention: 1 hour
-- Supported formats: MP4, AVI, MOV, and other video formats
-
-## Security Notes
-
-- The application uses your Telegram bot token to access files
-- Files are temporarily stored on the server
-- Old streams are automatically cleaned up after 1 hour
-- The application is designed for development/testing use
-
-## Troubleshooting
-
-### Common Issues
-
-1. **"Invalid file ID" error:**
-
-   - Make sure the file ID is correct
-   - Ensure the file is accessible to your bot
-
-2. **"File too large" error:**
-
-   - The file exceeds the 100MB limit
-   - Consider using a smaller video file
-
-3. **"Failed to download file" error:**
-   - Check your internet connection
-   - Verify the bot token is correct
-   - Ensure the file still exists on Telegram
-
-### Debug Mode
-
-The application runs in debug mode by default. For production:
-
-1. Set `FLASK_ENV=production`
-2. Use a production WSGI server like Gunicorn
-3. Configure proper security headers
-
-## Development
-
-### Project Structure
+## File Structure
 
 ```
 streamer/
-├── app.py              # Main Flask application
-├── requirements.txt    # Python dependencies
-├── templates/         # HTML templates
-│   └── index.html    # Main web interface
-├── uploads/          # Temporary video storage
-└── README.md         # This file
+├── app_vercel.py          # Vercel deployment file
+├── simple_bot.py          # Local bot file
+├── vercel.json            # Vercel configuration
+├── requirements-vercel.txt # Vercel dependencies
+├── deploy_vercel.sh       # Deployment script
+├── setup_vercel.sh        # Setup script
+└── VERCEL_DEPLOYMENT.md   # Deployment guide
 ```
 
-### Adding Features
+## Troubleshooting
 
-- **New video formats:** Modify the video processing logic in `app.py`
-- **Authentication:** Add user authentication to protect streams
-- **Database:** Use a database to persist stream information
-- **CDN integration:** Add support for CDN streaming
+### Bot not responding?
+
+1. Check if bot token is correct
+2. Verify webhook is set (for Vercel)
+3. Check logs for errors
+
+### Streaming not working?
+
+1. Verify Cloudflare Worker URL
+2. Check if file is accessible
+3. Test with smaller video files
+
+### Deployment issues?
+
+1. Check environment variables
+2. Verify Vercel CLI installation
+3. Check deployment logs
+
+## Support
+
+For issues and questions:
+
+1. Check the deployment guide: `VERCEL_DEPLOYMENT.md`
+2. Review the troubleshooting section
+3. Check Vercel function logs
 
 ## License
 
-This project is for educational and development purposes. Use responsibly and in accordance with Telegram's terms of service.
+This project is open source and available under the MIT License.
