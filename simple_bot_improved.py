@@ -1,31 +1,25 @@
 #!/usr/bin/env python3
 """
-Vercel-Compatible Telegram Bot
-Uses webhooks instead of polling for Vercel deployment
+Improved Simple Working Telegram Bot
+Better error handling and timeout management
 """
 
 import os
-import json
+import asyncio
 import requests
-from flask import Flask, request, jsonify
-from telegram import Update, Bot
+from telegram import Update
 from telegram.ext import Application, CommandHandler, MessageHandler, filters, ContextTypes
 from telegram.constants import ParseMode
-
-app = Flask(__name__)
+from telegram.error import TimedOut, NetworkError
 
 # Environment variables
 BOT_TOKEN = os.environ.get('BOT_TOKEN', '8445456449:AAGE0BaW2pSxJf7t4j5wb0Q09KRPItienPA')
 CLOUDFLARE_WORKER_URL = os.environ.get('CLOUDFLARE_WORKER_URL', 'https://telegram-file-proxy.mhstreamer.workers.dev')
-WEBHOOK_URL = os.environ.get('WEBHOOK_URL', '')  # Will be set by Vercel
 
-print(f"🤖 Starting Vercel bot with token: {BOT_TOKEN[:10]}...")
+print(f"🤖 Starting improved bot with token: {BOT_TOKEN[:10]}...")
 print(f"🌐 Cloudflare Worker: {CLOUDFLARE_WORKER_URL}")
 
-# Create bot instance
-bot = Bot(token=BOT_TOKEN)
-
-async def start_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
+async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
     """Handle /start command"""
     try:
         message = """
@@ -131,112 +125,53 @@ async def handle_document(update: Update, context: ContextTypes.DEFAULT_TYPE):
 async def error_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
     """Log Errors caused by Updates."""
     print(f'❌ Update {update} caused error {context.error}')
+    
+    # Handle specific errors
+    if isinstance(context.error, TimedOut):
+        print("⏰ Request timed out - this is normal for long operations")
+    elif isinstance(context.error, NetworkError):
+        print("🌐 Network error - will retry automatically")
+    else:
+        print(f"❌ Unexpected error: {context.error}")
 
-# Create application
-application = Application.builder().token(BOT_TOKEN).build()
-
-# Add handlers
-application.add_handler(CommandHandler("start", start_command))
-application.add_handler(CommandHandler("help", help_command))
-application.add_handler(MessageHandler(filters.VIDEO, handle_video))
-application.add_handler(MessageHandler(filters.Document.VIDEO, handle_document))
-
-# Add error handler
-application.add_error_handler(error_handler)
-
-@app.route('/')
-def index():
-    return jsonify({
-        "status": "Bot is running",
-        "bot_token": BOT_TOKEN[:10] + "...",
-        "cloudflare_worker": CLOUDFLARE_WORKER_URL
-    })
-
-@app.route('/webhook', methods=['POST', 'GET', 'OPTIONS'])
-async def webhook():
-    """Handle incoming webhook updates from Telegram"""
-    # Handle CORS preflight requests
-    if request.method == 'OPTIONS':
-        response = jsonify({"status": "ok"})
-        response.headers['Access-Control-Allow-Origin'] = '*'
-        response.headers['Access-Control-Allow-Methods'] = 'GET, POST, OPTIONS'
-        response.headers['Access-Control-Allow-Headers'] = 'Content-Type'
-        return response
+def main():
+    """Start the bot with improved error handling."""
+    print("🚀 Starting improved bot...")
     
     try:
-        # Get the update from Telegram
-        update_data = request.get_json()
+        # Create the Application with better timeout settings
+        application = Application.builder().token(BOT_TOKEN).build()
         
-        if not update_data:
-            return jsonify({"error": "No data received"}), 400
+        # Add handlers
+        application.add_handler(CommandHandler("start", start))
+        application.add_handler(CommandHandler("help", help_command))
+        application.add_handler(MessageHandler(filters.VIDEO, handle_video))
+        application.add_handler(MessageHandler(filters.Document.VIDEO, handle_document))
         
-        # Create Update object
-        update = Update.de_json(update_data, bot)
+        # Add error handler
+        application.add_error_handler(error_handler)
         
-        # Process the update
-        await application.process_update(update)
+        print("✅ Bot created successfully")
+        print("🔄 Starting polling with improved settings...")
         
-        response = jsonify({"status": "ok"})
-        response.headers['Access-Control-Allow-Origin'] = '*'
-        return response
-        
-    except Exception as e:
-        print(f"❌ Webhook error: {e}")
-        response = jsonify({"error": str(e)})
-        response.headers['Access-Control-Allow-Origin'] = '*'
-        return response, 500
-
-@app.route('/set-webhook', methods=['POST'])
-def set_webhook():
-    """Set webhook URL for Telegram bot"""
-    try:
-        # Get the current domain from Vercel
-        domain = request.headers.get('Host', '')
-        if not domain:
-            return jsonify({"error": "No domain found"}), 400
-        
-        webhook_url = f"https://{domain}/webhook"
-        
-        # Set webhook with Telegram
-        response = requests.post(
-            f"https://api.telegram.org/bot{BOT_TOKEN}/setWebhook",
-            json={"url": webhook_url}
+        # Start the bot with better timeout settings
+        application.run_polling(
+            allowed_updates=Update.ALL_TYPES,
+            drop_pending_updates=True,  # Drop old updates
+            timeout=30,  # Increased timeout
+            read_timeout=30,  # Increased read timeout
+            write_timeout=30,  # Increased write timeout
+            connect_timeout=30,  # Increased connect timeout
+            pool_timeout=30  # Increased pool timeout
         )
         
-        result = response.json()
-        
-        if result.get('ok'):
-            return jsonify({
-                "status": "Webhook set successfully",
-                "webhook_url": webhook_url
-            })
-        else:
-            return jsonify({
-                "error": "Failed to set webhook",
-                "telegram_response": result
-            }), 400
-            
+    except KeyboardInterrupt:
+        print("\n🛑 Bot stopped by user")
     except Exception as e:
-        return jsonify({"error": str(e)}), 500
+        print(f"❌ Failed to start bot: {e}")
+        print("💡 Try deploying to Vercel instead:")
+        print("   ./deploy_vercel.sh")
+        raise
 
-@app.route('/get-webhook-info')
-def get_webhook_info():
-    """Get current webhook info"""
-    try:
-        response = requests.get(f"https://api.telegram.org/bot{BOT_TOKEN}/getWebhookInfo")
-        return jsonify(response.json())
-    except Exception as e:
-        return jsonify({"error": str(e)}), 500
-
-@app.route('/delete-webhook')
-def delete_webhook():
-    """Delete webhook"""
-    try:
-        response = requests.post(f"https://api.telegram.org/bot{BOT_TOKEN}/deleteWebhook")
-        return jsonify(response.json())
-    except Exception as e:
-        return jsonify({"error": str(e)}), 500
-
-# For local development
 if __name__ == '__main__':
-    app.run(debug=True, host='0.0.0.0', port=int(os.environ.get('PORT', 5000))) 
+    main() 

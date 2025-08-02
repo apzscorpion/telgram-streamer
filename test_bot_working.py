@@ -1,135 +1,83 @@
 #!/usr/bin/env python3
 """
-Test if the bot is working and can receive messages
+Test script to check if bot token is working
 """
 
+import os
 import requests
-import json
-from config import *
+import asyncio
+from telegram import Bot
+from telegram.ext import Application
 
-def test_bot_webhook():
-    """Test if bot is set up for webhooks"""
-    url = f"https://api.telegram.org/bot{BOT_TOKEN}/getWebhookInfo"
-    response = requests.get(url)
-    
-    if response.status_code == 200:
-        data = response.json()
-        if data.get('ok'):
-            webhook_info = data['result']
-            print("🔗 Webhook Information:")
-            print(f"   URL: {webhook_info.get('url', 'Not set')}")
-            print(f"   Has custom certificate: {webhook_info.get('has_custom_certificate', False)}")
-            print(f"   Pending update count: {webhook_info.get('pending_update_count', 0)}")
-            print(f"   Last error date: {webhook_info.get('last_error_date', 'None')}")
-            print(f"   Last error message: {webhook_info.get('last_error_message', 'None')}")
-            
-            if webhook_info.get('url'):
-                print("✅ Webhook is configured")
-                return True
-            else:
-                print("⚠️  Webhook not configured - using polling")
-                return False
-        else:
-            print(f"❌ Error getting webhook info: {data.get('description')}")
-            return False
-    else:
-        print(f"❌ HTTP Error: {response.status_code}")
+# Environment variables
+BOT_TOKEN = os.environ.get('BOT_TOKEN', '8445456449:AAGE0BaW2pSxJf7t4j5wb0Q09KRPItienPA')
+
+async def test_bot():
+    """Test if bot can connect to Telegram"""
+    try:
+        print(f"🤖 Testing bot token: {BOT_TOKEN[:10]}...")
+        
+        # Create bot instance
+        bot = Bot(token=BOT_TOKEN)
+        
+        # Test basic connection
+        print("🔗 Testing connection to Telegram...")
+        me = await bot.get_me()
+        print(f"✅ Bot connected successfully!")
+        print(f"📱 Bot name: {me.first_name}")
+        print(f"👤 Bot username: @{me.username}")
+        print(f"🆔 Bot ID: {me.id}")
+        
+        # Test getting updates
+        print("📥 Testing get updates...")
+        updates = await bot.get_updates(limit=1)
+        print(f"✅ Get updates working! Found {len(updates)} updates")
+        
+        return True
+        
+    except Exception as e:
+        print(f"❌ Bot test failed: {e}")
         return False
 
-def test_bot_polling():
-    """Test if bot is receiving updates via polling"""
-    url = f"https://api.telegram.org/bot{BOT_TOKEN}/getUpdates"
-    response = requests.get(url)
-    
-    if response.status_code == 200:
-        data = response.json()
-        if data.get('ok'):
-            updates = data['result']
-            print(f"📱 Polling Test:")
-            print(f"   Found {len(updates)} recent updates")
-            
-            if updates:
-                print("✅ Bot is receiving updates via polling")
-                return True
-            else:
-                print("📭 No updates found - bot is ready to receive messages")
-                return True
-        else:
-            print(f"❌ Error getting updates: {data.get('description')}")
-            return False
-    else:
-        print(f"❌ HTTP Error: {response.status_code}")
+async def test_webhook():
+    """Test webhook functionality"""
+    try:
+        print("🔗 Testing webhook setup...")
+        
+        # Create application
+        application = Application.builder().token(BOT_TOKEN).build()
+        
+        # Test webhook info
+        webhook_info = await application.bot.get_webhook_info()
+        print(f"✅ Webhook info retrieved: {webhook_info}")
+        
+        return True
+        
+    except Exception as e:
+        print(f"❌ Webhook test failed: {e}")
         return False
 
-def send_test_message():
-    """Send a test message to the bot"""
-    print("\n📤 Sending test message to bot...")
+async def main():
+    """Run all tests"""
+    print("🧪 Starting bot tests...")
     
-    # Get bot info first
-    url = f"https://api.telegram.org/bot{BOT_TOKEN}/getMe"
-    response = requests.get(url)
+    # Test basic bot functionality
+    bot_ok = await test_bot()
     
-    if response.status_code == 200:
-        data = response.json()
-        if data.get('ok'):
-            bot_info = data['result']
-            print(f"✅ Bot info: @{bot_info['username']}")
-            
-            print("\n💡 To test the bot:")
-            print("1. Open Telegram")
-            print("2. Search for @MHStreamsBot")
-            print("3. Send /start to the bot")
-            print("4. Send a video file to the bot")
-            print("5. The bot should respond with streaming URLs")
-            
-            return True
-        else:
-            print(f"❌ Bot error: {data.get('description')}")
-            return False
+    # Test webhook functionality
+    webhook_ok = await test_webhook()
+    
+    print("\n📊 Test Results:")
+    print(f"Bot Connection: {'✅ PASS' if bot_ok else '❌ FAIL'}")
+    print(f"Webhook Test: {'✅ PASS' if webhook_ok else '❌ FAIL'}")
+    
+    if bot_ok and webhook_ok:
+        print("\n🎉 All tests passed! Your bot should work fine.")
+        print("💡 Try deploying to Vercel now:")
+        print("   ./deploy_vercel.sh")
     else:
-        print(f"❌ HTTP Error: {response.status_code}")
-        return False
+        print("\n⚠️  Some tests failed. Check your bot token and network connection.")
+        print("💡 Make sure your bot token is correct and you have internet access.")
 
-def main():
-    """Main test function"""
-    print("🤖 Bot Working Test")
-    print("=" * 50)
-    
-    # Test bot token
-    print("\n1. Testing bot token...")
-    url = f"https://api.telegram.org/bot{BOT_TOKEN}/getMe"
-    response = requests.get(url)
-    
-    if response.status_code == 200:
-        data = response.json()
-        if data.get('ok'):
-            bot_info = data['result']
-            print(f"✅ Bot is working: @{bot_info['username']}")
-            print(f"   Name: {bot_info['first_name']}")
-            print(f"   ID: {bot_info['id']}")
-        else:
-            print(f"❌ Bot error: {data.get('description')}")
-            return
-    else:
-        print(f"❌ HTTP Error: {response.status_code}")
-        return
-    
-    # Test webhook
-    print("\n2. Testing webhook configuration...")
-    test_bot_webhook()
-    
-    # Test polling
-    print("\n3. Testing polling...")
-    test_bot_polling()
-    
-    # Send test instructions
-    print("\n4. Testing bot interaction...")
-    send_test_message()
-    
-    print("\n🎯 Next Steps:")
-    print("1. Send a video to @MHStreamsBot")
-    print("2. Run: python get_real_file_id.py")
-    print("3. Check if the bot responds with streaming URLs")
-
-if __name__ == "__main__":
-    main() 
+if __name__ == '__main__':
+    asyncio.run(main()) 
