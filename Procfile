@@ -1,1 +1,1 @@
-worker: python telegram_bot_cloudflare.py 
+worker: python telegram_bot_render.py 

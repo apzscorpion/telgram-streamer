@@ -3,7 +3,7 @@ services:
     name: telegram-streamer-bot
     env: python
     buildCommand: pip install -r requirements.txt
-    startCommand: python telegram_bot_fixed.py
+    startCommand: python telegram_bot_render.py
     plan: free
     envVars:
       - key: BOT_TOKEN
