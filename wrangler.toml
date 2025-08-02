@@ -1,0 +1,16 @@
+name = "telegram-file-proxy"
+main = "worker.js"
+compatibility_date = "2024-01-01"
+
+[env.production]
+name = "telegram-file-proxy"
+
+[env.staging]
+name = "telegram-file-proxy-staging"
+
+[env.development]
+name = "telegram-file-proxy-dev"
+
+# Environment variables
+[vars]
+TELEGRAM_BOT_TOKEN = "8445456449:AAGE0BaW2pSxJf7t4j5wb0Q09KRPItienPA" 
