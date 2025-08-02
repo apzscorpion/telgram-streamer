@@ -1,5 +1,5 @@
 // Cloudflare Worker for Telegram File Proxy
-// Similar to the other bot's approach
+// Updated for 4GB files and better forwarded file handling
 
 addEventListener("fetch", (event) => {
   event.respondWith(handleRequest(event.request));
@@ -32,7 +32,7 @@ async function handleRequest(request) {
   }
 
   // Default response
-  return new Response("Telegram File Proxy Worker", {
+  return new Response("Telegram File Proxy Worker - Supports up to 4GB files", {
     headers: { "Content-Type": "text/plain" },
   });
 }
@@ -49,16 +49,25 @@ async function handleStreamRequest(request, path) {
     const fileInfo = await getTelegramFileInfo(fileId);
 
     if (!fileInfo.ok) {
-      return new Response("File not found", { status: 404 });
+      // Try alternative approach for forwarded files
+      return handleForwardedFile(request, fileId);
     }
 
     const filePath = fileInfo.result.file_path;
     const fileSize = fileInfo.result.file_size;
 
+    // Check file size (4GB limit)
+    const maxSize = 4 * 1024 * 1024 * 1024; // 4GB
+    if (fileSize > maxSize) {
+      return new Response(`File too large. Maximum size is 4GB`, {
+        status: 413,
+      });
+    }
+
     // Create direct Telegram file URL
     const telegramUrl = `https://api.telegram.org/file/bot${TELEGRAM_BOT_TOKEN}/${filePath}`;
 
-    // Proxy the file
+    // Proxy the file with range support
     const response = await fetch(telegramUrl, {
       headers: {
         Range: request.headers.get("Range") || "",
@@ -89,6 +98,42 @@ async function handleStreamRequest(request, path) {
   }
 }
 
+async function handleForwardedFile(request, fileId) {
+  try {
+    // For forwarded files, try direct access
+    const directUrl = `https://api.telegram.org/file/bot${TELEGRAM_BOT_TOKEN}/${fileId}`;
+
+    const response = await fetch(directUrl, {
+      headers: {
+        Range: request.headers.get("Range") || "",
+        "User-Agent": "TelegramBot/1.0",
+      },
+    });
+
+    if (!response.ok) {
+      return new Response("Forwarded file not accessible", { status: 403 });
+    }
+
+    // Return direct response for forwarded files
+    return new Response(response.body, {
+      status: response.status,
+      headers: {
+        "Content-Type": "video/mp4",
+        "Accept-Ranges": "bytes",
+        "Access-Control-Allow-Origin": "*",
+        "Access-Control-Allow-Methods": "GET, HEAD",
+        "Access-Control-Allow-Headers": "Range",
+        "Cache-Control": "public, max-age=3600",
+        "Content-Disposition": `inline; filename="forwarded_video.mp4"`,
+      },
+    });
+  } catch (error) {
+    return new Response(`Forwarded file error: ${error.message}`, {
+      status: 500,
+    });
+  }
+}
+
 async function handleApiRequest(request, path) {
   try {
     const url = new URL(request.url);
@@ -102,7 +147,25 @@ async function handleApiRequest(request, path) {
     const fileInfo = await getTelegramFileInfo(fileId);
 
     if (!fileInfo.ok) {
-      return new Response("Invalid file ID", { status: 404 });
+      // Try alternative for forwarded files
+      const streamUrl = `${url.origin}/stream/${fileId}`;
+      const downloadUrl = `${url.origin}/dl/${fileId}`;
+
+      return new Response(
+        JSON.stringify({
+          success: true,
+          file_size: "Unknown (forwarded file)",
+          stream_url: streamUrl,
+          download_url: downloadUrl,
+          note: "Forwarded file - direct access",
+        }),
+        {
+          headers: {
+            "Content-Type": "application/json",
+            "Access-Control-Allow-Origin": "*",
+          },
+        }
+      );
     }
 
     const filePath = fileInfo.result.file_path;
