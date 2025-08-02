@@ -8,7 +8,7 @@ BOT_TOKEN = "8445456449:AAGE0BaW2pSxJf7t4j5wb0Q09KRPItienPA"
 BOT_USERNAME = "MHStreamsBot"  # Replace with your actual bot username
 
 # Flask app configuration
-FLASK_BASE_URL = "http://localhost:5000"  # Change this if your server is on a different URL
+FLASK_BASE_URL = "https://telgram-streamer.vercel.app"  # Vercel deployment URL
 
 # File limits
 MAX_FILE_SIZE = 100 * 1024 * 1024  # 100MB in bytes
