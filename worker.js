@@ -45,10 +45,14 @@ async function handleStreamRequest(request, path) {
     const fileId = parts[2];
     const hash = parts[3] || "";
 
+    console.log(`Processing ${action} request for fileId: ${fileId}`);
+
     // Get file info from Telegram
     const fileInfo = await getTelegramFileInfo(fileId);
+    console.log(`File info response:`, fileInfo);
 
     if (!fileInfo.ok) {
+      console.log(`File info failed, trying forwarded file approach`);
       // Try alternative approach for forwarded files
       return handleForwardedFile(request, fileId);
     }
@@ -100,8 +104,11 @@ async function handleStreamRequest(request, path) {
 
 async function handleForwardedFile(request, fileId) {
   try {
+    console.log(`Trying forwarded file approach for fileId: ${fileId}`);
+
     // For forwarded files, try direct access
     const directUrl = `https://api.telegram.org/file/bot${TELEGRAM_BOT_TOKEN}/${fileId}`;
+    console.log(`Direct URL: ${directUrl}`);
 
     const response = await fetch(directUrl, {
       headers: {
@@ -110,8 +117,20 @@ async function handleForwardedFile(request, fileId) {
       },
     });
 
+    console.log(`Direct URL response status: ${response.status}`);
+
     if (!response.ok) {
-      return new Response("Forwarded file not accessible", { status: 403 });
+      console.log(`Direct URL failed with status: ${response.status}`);
+      return new Response(
+        `Forwarded file not accessible (Status: ${response.status})`,
+        {
+          status: 403,
+          headers: {
+            "Content-Type": "text/plain",
+            "Access-Control-Allow-Origin": "*",
+          },
+        }
+      );
     }
 
     // Return direct response for forwarded files
@@ -128,8 +147,13 @@ async function handleForwardedFile(request, fileId) {
       },
     });
   } catch (error) {
+    console.log(`Forwarded file error: ${error.message}`);
     return new Response(`Forwarded file error: ${error.message}`, {
       status: 500,
+      headers: {
+        "Content-Type": "text/plain",
+        "Access-Control-Allow-Origin": "*",
+      },
     });
   }
 }
@@ -221,5 +245,5 @@ async function getTelegramFileInfo(fileId) {
   return await response.json();
 }
 
-// Your bot token (replace with your actual token)
+// Get bot token from environment variables
 const TELEGRAM_BOT_TOKEN = "8445456449:AAGE0BaW2pSxJf7t4j5wb0Q09KRPItienPA";
